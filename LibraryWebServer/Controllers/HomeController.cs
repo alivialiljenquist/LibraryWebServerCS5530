@@ -30,8 +30,16 @@ namespace LibraryWebServer.Controllers
     [HttpPost]
     public IActionResult CheckLogin(string name, int cardnum)
     {
-      // TODO: Fill in. Determine if login is successful or not.
       bool loginSuccessful = false;
+
+      using (Team14LibraryContext db = new Team14LibraryContext())
+      {
+        foreach(Patrons p in db.Patrons)
+        {
+          if (p.Name == name && p.CardNum == cardnum)
+            loginSuccessful = true;
+        }
+      }
 
       if(!loginSuccessful)
       {
@@ -71,11 +79,36 @@ namespace LibraryWebServer.Controllers
     [HttpPost]
     public ActionResult AllTitles()
     {
+      using (Team14LibraryContext db = new Team14LibraryContext())
+      {
+        var query =
+        from t in db.Titles
+        join i in db.Inventory
+        on t.Isbn equals i.Isbn
+        into inv
+        from j in inv.DefaultIfEmpty()
 
-      // TODO: Implement
-      
-      return Json(null);
+        join c in db.CheckedOut
+        on j.Serial equals c.Serial
+        into chkOut
+        from j1 in chkOut.DefaultIfEmpty()
 
+        join p in db.Patrons
+        on j1.CardNum equals p.CardNum
+        into pat
+        from j2 in pat.DefaultIfEmpty()
+
+        select new
+        {
+          isbn = t.Isbn,
+          title = t.Title,
+          author = t.Author,
+          serial = j.Serial == null ? null : (uint?)j.Serial,
+          name = j2.Name == null ? "" : (String)j2.Name
+        };
+
+        return Json(query.ToArray());
+      }
     }
 
     /// <summary>
@@ -89,8 +122,22 @@ namespace LibraryWebServer.Controllers
     [HttpPost]
     public ActionResult ListMyBooks()
     {
-      // TODO: Implement
-      return Json(null);
+      using (Team14LibraryContext db = new Team14LibraryContext())
+      {
+        var query = from c in db.CheckedOut
+                    where c.CardNum == card
+                    join i in db.Inventory on c.Serial equals i.Serial into chkInv
+                    from ci in chkInv
+                    join t in db.Titles on ci.Isbn equals t.Isbn
+                    select new
+                    {
+                      title = t.Title,
+                      author = t.Author,
+                      serial = ci.Serial
+                    };
+
+        return Json(query.ToArray());
+      }
     }
 
 
@@ -105,8 +152,16 @@ namespace LibraryWebServer.Controllers
     [HttpPost]
     public ActionResult CheckOutBook(int serial)
     {
-      // You may have to cast serial to a (uint)
+      using (Team14LibraryContext db = new Team14LibraryContext())
+      {
+        CheckedOut chkOut = new CheckedOut();
+        chkOut.CardNum = (uint)card;
+        chkOut.Serial = (uint)serial;
 
+        db.CheckedOut.Add(chkOut);
+
+        db.SaveChanges();
+      }
 
         return Json(new { success = true });
     }
@@ -122,7 +177,26 @@ namespace LibraryWebServer.Controllers
     [HttpPost]
     public ActionResult ReturnBook(int serial)
     {
-      // You may have to cast serial to a (uint)
+      using (Team14LibraryContext db = new Team14LibraryContext())
+      {
+        CheckedOut chkOut = new CheckedOut();
+        chkOut.CardNum = (uint)card;
+        chkOut.Serial = (uint)serial;
+
+        db.CheckedOut.Remove(chkOut);
+
+        db.SaveChanges();
+      }
+
+      //using (Team14LibraryContext db = new Team14LibraryContext())
+      //{
+      //  var query = from c in db.CheckedOut
+      //              where c.Serial == serial
+      //              select c;
+
+      //  db.CheckedOut.RemoveRange(query);
+      //  db.SaveChanges();
+      //}
 
       return Json(new { success = true });
     }
