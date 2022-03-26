@@ -32,6 +32,7 @@ namespace LibraryWebServer.Controllers
     {
       bool loginSuccessful = false;
 
+      // Allow access to Library if the Name matches the corresponding CardNum
       using (Team14LibraryContext db = new Team14LibraryContext())
       {
         foreach(Patrons p in db.Patrons)
@@ -103,8 +104,8 @@ namespace LibraryWebServer.Controllers
           isbn = t.Isbn,
           title = t.Title,
           author = t.Author,
-          serial = j.Serial == null ? null : (uint?)j.Serial,
-          name = j2.Name == null ? "" : (String)j2.Name
+          serial = j.Serial == null ? null : (uint?)j.Serial, // If Serial is null return null, else return Serial
+          name = j2.Name == null ? "" : (String)j2.Name // If Serial is null return an empty string, else return Serial
         };
 
         return Json(query.ToArray());
@@ -188,6 +189,7 @@ namespace LibraryWebServer.Controllers
         db.SaveChanges();
       }
 
+      // Another implementation done through linq query
       //using (Team14LibraryContext db = new Team14LibraryContext())
       //{
       //  var query = from c in db.CheckedOut
